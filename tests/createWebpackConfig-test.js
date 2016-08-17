@@ -1,7 +1,6 @@
 import expect from 'expect'
 
 import createWebpackConfig, {
-  combineLoaders,
   COMPAT_CONFIGS,
   createPostCSSConfig,
   getCompatConfig,
@@ -19,14 +18,14 @@ describe('createWebpackConfig()', () => {
     let config = createWebpackConfig({entry: ['index.js']})
     it('creates a default webpack build config', () => {
       expect(Object.keys(config)).toEqual(['module', 'output', 'plugins', 'resolve', 'postcss', 'entry'])
-      expect(config.module.loaders.map(loader => loader.loader).join('\n'))
+      expect(config.module.loaders.map(loader => loader.loader || loader.loaders).join('\n'))
         .toContain('babel-loader')
         .toContain('extract-text-webpack-plugin')
         .toContain('css-loader')
         .toContain('postcss-loader')
         .toContain('url-loader')
         .toContain('json-loader')
-      expect(config.resolve.extensions).toEqual(['', '.js', '.json'])
+      expect(config.resolve.extensions).toEqual(['.js', '.json'])
     })
     it('excludes node_modules from babel-loader', () => {
       expect(config.module.loaders[0].exclude.test('node_modules')).toBe(true)
@@ -39,14 +38,18 @@ describe('createWebpackConfig()', () => {
   context('with server config', () => {
     let config = createWebpackConfig({entry: ['index.js'], server: {}})
     it('creates a server webpack config', () => {
-      expect(config.module.loaders.map(loader => loader.loader).join('\n'))
+      expect(config.module.loaders.map(loader => {
+        // The style pipeline will have a list of chained loaders
+        if (Array.isArray(loader.loaders)) return loader.loaders.map(loader => loader.loader).join('\n')
+        return loader.loader
+      }).join('\n'))
         .toContain('babel-loader')
         .toContain('style-loader')
         .toContain('css-loader')
         .toContain('postcss-loader')
         .toContain('url-loader')
         .toContain('json-loader')
-      expect(config.resolve.extensions).toEqual(['', '.js', '.json'])
+      expect(config.resolve.extensions).toEqual(['.js', '.json'])
     })
   })
 
@@ -71,13 +74,23 @@ describe('createWebpackConfig()', () => {
     it('creates a style loading pipeline', () => {
       let loader = findLoaderById(config.module.loaders, 'sass-pipeline')
       expect(loader).toExist()
-      expect(loader.loader).toMatch(/.*?style-loader.*?css-loader.*?postcss-loader.*?!path\/to\/sass-loader\.js$/)
+      expect(loader.loaders).toMatch([
+        {loader: /style-loader/},
+        {loader: /css-loader/},
+        {loader: /postcss-loader/},
+        {loader: /path\/to\/sass-loader\.js$/},
+      ])
       expect(loader.exclude.test('node_modules')).toBe(true, 'app loader should exclude node_modules')
     })
     it('creates a vendor style loading pipeline', () => {
       let loader = findLoaderById(config.module.loaders, 'vendor-sass-pipeline')
       expect(loader).toExist()
-      expect(loader.loader).toMatch(/.*?style-loader.*?css-loader.*?postcss-loader.*?!path\/to\/sass-loader\.js$/)
+      expect(loader.loaders).toMatch([
+        {loader: /style-loader/},
+        {loader: /css-loader/},
+        {loader: /postcss-loader/},
+        {loader: /path\/to\/sass-loader\.js$/},
+      ])
       expect(loader.include.test('node_modules')).toBe(true, 'vendor loader should include node_modules')
     })
   })
@@ -98,12 +111,25 @@ describe('createWebpackConfig()', () => {
     it('applies user config to the preprocessor loader', () => {
       let loader = findLoaderById(config.module.loaders, 'sass-pipeline')
       expect(loader).toExist()
-      expect(loader.loader).toMatch(/.*?style-loader.*?css-loader.*?postcss-loader.*?!path\/to\/sass-loader\.js\?a=1&b=2$/)
+      expect(loader.loaders).toMatch([
+        {loader: /style-loader/},
+        {loader: /css-loader/},
+        {loader: /postcss-loader/},
+        {
+          loader: /path\/to\/sass-loader\.js$/,
+          query: {a: 1, b: 2},
+        },
+      ])
     })
     it('only applies user config to the appropriate loader', () => {
       let loader = findLoaderById(config.module.loaders, 'vendor-sass-pipeline')
       expect(loader).toExist()
-      expect(loader.loader).toMatch(/.*?style-loader.*?css-loader.*?postcss-loader.*?!path\/to\/sass-loader\.js$/)
+      expect(loader.loaders).toMatch([
+        {loader: /style-loader/},
+        {loader: /css-loader/},
+        {loader: /postcss-loader/},
+        {loader: /path\/to\/sass-loader\.js$/},
+      ])
     })
   })
 
@@ -265,22 +291,6 @@ describe('mergeLoaderConfig()', () => {
         }
       }
     })
-  })
-})
-
-describe('combineLoaders()', () => {
-  it('stringifies query strings, appends them and joins loaders', () => {
-    expect(combineLoaders([
-      {loader: 'one', query: {a: 1, b: 2}},
-      {loader: 'two', query: {c: 3, d: 4}},
-    ])).toEqual('one?a=1&b=2!two?c=3&d=4')
-  })
-  it('only appends a ? if query is non-empty', () => {
-    expect(combineLoaders([
-      {loader: 'one', query: {a: 1, b: 2}},
-      {loader: 'two', query: {}},
-      {loader: 'three'},
-    ])).toEqual('one?a=1&b=2!two!three')
   })
 })
 
