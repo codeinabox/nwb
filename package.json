@@ -22,7 +22,6 @@
     "docs",
     "lib",
     "templates",
-    "vendor",
     "express.js",
     "polyfills.js"
   ],

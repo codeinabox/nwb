@@ -12,7 +12,6 @@ import failPlugin from 'webpack-fail-plugin'
 import Md5HashPlugin from 'webpack-md5-hash'
 import merge from 'webpack-merge'
 
-import HashedModuleIdsPlugin from '../vendor/HashedModuleIdsPlugin'
 import createBabelConfig from './createBabelConfig'
 import debug from './debug'
 import {deepToString, endsWith, typeOf} from './utils'
@@ -357,7 +356,7 @@ export function createPlugins(server, buildConfig = {}, userConfig = {}) {
         // HashedModuleIdsPlugin (vendored from Webpack 2) does this without
         // adding too much to bundle size and NamedModulesPlugin allows for
         // easier debugging of development builds.
-        development ? new webpack.NamedModulesPlugin() : new HashedModuleIdsPlugin(),
+        development ? new webpack.NamedModulesPlugin() : new webpack.HashedModuleIdsPlugin(),
         // The MD5 Hash plugin seems to make [chunkhash] for .js files behave
         // like [contenthash] does for extracted .css files, which is essential
         // for deterministic hashing.
