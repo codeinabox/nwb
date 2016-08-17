@@ -634,7 +634,7 @@ export default function createWebpackConfig(buildConfig, nwbPluginConfig = {}, u
     },
     plugins: createPlugins(server, buildPluginConfig, userWebpackConfig),
     resolve: merge({
-      extensions: ['', '.js', '.json'],
+      extensions: ['.js', '.json'],
     }, buildResolveConfig, userResolveConfig),
     postcss: createPostCSSConfig(userWebpackConfig, nwbPluginConfig.cssPreprocessors),
     ...otherBuildConfig,

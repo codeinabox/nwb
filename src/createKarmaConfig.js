@@ -192,8 +192,6 @@ export default function createKarmaConfig({codeCoverage, singleRun}, userConfig)
         alias: {
           src: path.resolve('src'),
         },
-        // Fall back to resolving runtime dependencies from nwb's dependencies
-        fallback: path.join(__dirname, '../node_modules'),
       },
       server: {
         hot: false,
