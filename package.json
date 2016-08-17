@@ -45,7 +45,6 @@
     "object-assign": "4.1.0",
     "ora": "0.3.0",
     "promise": "7.1.1",
-    "qs": "6.3.0",
     "resolve": "1.1.7",
     "rimraf": "2.5.4",
     "temp": "0.8.3",

@@ -6,7 +6,6 @@ import CopyPlugin from 'copy-webpack-plugin'
 import ExtractTextPlugin from 'extract-text-webpack-plugin'
 import HtmlPlugin from 'html-webpack-plugin'
 import NpmInstallPlugin from 'npm-install-webpack-plugin'
-import qs from 'qs'
 import webpack, {optimize} from 'webpack'
 import failPlugin from 'webpack-fail-plugin'
 import Md5HashPlugin from 'webpack-md5-hash'
@@ -20,15 +19,6 @@ import StatusPlugin from './WebpackStatusPlugin'
 // Top-level property names reserved for webpack config
 // From http://webpack.github.io/docs/configuration.html
 const WEBPACK_RESERVED = 'context entry output module resolve resolveLoader externals target bail profile cache watch watchOptions debug devtool devServer node amd loader recordsPath recordsInputPath recordsOutputPath plugins'.split(' ')
-
-/**
- * Create a loader string from a list of {loader, query} objects.
- */
-export let combineLoaders = loaders =>
-  loaders.map(loader => {
-    let query = qs.stringify(loader.query, {arrayFormat: 'brackets'})
-    return `${loader.loader}${query && `?${query}`}`
-  }).join('!')
 
 /**
  * Merge webpack loader config ({test, loader, query, include, exclude}) objects.
@@ -78,11 +68,14 @@ export let styleLoaderName = (prefix) =>
  * Create a default style-handling pipeline for either a static build (default)
  * or a server build.
  */
-export function createStyleLoader(loader, server, {
+export function createStyleLoaders(loader, server, {
   preprocessor = null,
   prefix = null,
 } = {}) {
   let name = styleLoaderName(prefix)
+  let styleLoader = loader(name('style'), {
+    loader: require.resolve('style-loader'),
+  })
   let loaders = [
     loader(name('css'), {
       loader: require.resolve('css-loader'),
@@ -104,18 +97,14 @@ export function createStyleLoader(loader, server, {
   }
 
   if (server) {
-    loaders.unshift(
-      loader(name('style'), {
-        loader: require.resolve('style-loader'),
-      })
-    )
-    return combineLoaders(loaders)
+    loaders.unshift(styleLoader)
+    return loaders
   }
   else {
-    return ExtractTextPlugin.extract(
-      require.resolve('style-loader'),
-      combineLoaders(loaders)
-    )
+    return ExtractTextPlugin.extract({
+      fallbackLoader: styleLoader,
+      loader: loaders,
+    })
   }
 }
 
@@ -154,12 +143,12 @@ export function createLoaders(server, buildConfig = {}, userConfig = {}, pluginC
     }),
     loader('css-pipeline', {
       test: /\.css$/,
-      loader: createStyleLoader(loader, server),
+      loaders: createStyleLoaders(loader, server),
       exclude: /node_modules/,
     }),
     loader('vendor-css-pipeline', {
       test: /\.css$/,
-      loader: createStyleLoader(loader, server, {
+      loaders: createStyleLoaders(loader, server, {
         prefix: 'vendor',
       }),
       include: /node_modules/,
@@ -204,7 +193,7 @@ export function createLoaders(server, buildConfig = {}, userConfig = {}, pluginC
       loaders.push(
         loader(`${id}-pipeline`, {
           test,
-          loader: createStyleLoader(loader, server, {
+          loaders: createStyleLoaders(loader, server, {
             prefix: id,
             preprocessor: {id, config},
           }),
@@ -214,7 +203,7 @@ export function createLoaders(server, buildConfig = {}, userConfig = {}, pluginC
       loaders.push(
         loader(`vendor-${id}-pipeline`, {
           test,
-          loader: createStyleLoader(loader, server, {
+          loaders: createStyleLoaders(loader, server, {
             prefix: `vendor-${id}`,
             preprocessor: {id, config},
           }),
@@ -331,7 +320,8 @@ export function createPlugins(server, buildConfig = {}, userConfig = {}) {
   else {
     // Extract CSS required as modules out into files
     let cssFilename = production ? `[name].[contenthash:8].css` : '[name].css'
-    plugins.push(new ExtractTextPlugin(cssFilename, {
+    plugins.push(new ExtractTextPlugin({
+      filename: cssFilename,
       ...userConfig.extractText,
     }))
 

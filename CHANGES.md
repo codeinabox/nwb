@@ -54,7 +54,6 @@
 - mocha: v3.0.2 → [v3.2.0](https://github.com/mochajs/mocha/blob/master/CHANGELOG.md#320--2016-11-24)
 - phantomjs-prebuilt: v2.1.12 → [v2.1.13](https://github.com/Medium/phantomjs/releases/tag/2.1.13)
 - postcss-loader: v0.10.0 → [v1.1.1](https://github.com/postcss/postcss-loader/blob/master/CHANGELOG.md#111)
-- qs: v6.2.1 → [v6.3.0](https://github.com/ljharb/qs/blob/master/CHANGELOG.md#630)
 - webpack: v1.13.1 → [v1.13.3](https://github.com/webpack/webpack/compare/v1.13.1...v1.13.3) - updated node-libs-browser and uglifyjs versions - `screw_ie8` is now enabled by default
 - webpack-merge: v0.14.1 → [v1.0.2](https://github.com/survivejs/webpack-merge/blob/master/CHANGELOG.md#102--2016-11-29)
 - webpack-dev-middleware: v1.6.1 → [v1.8.4](https://github.com/webpack/webpack-dev-middleware/blob/master/CHANGELOG.md#184-2016-10-08)
