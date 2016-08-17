@@ -165,22 +165,22 @@ export function createLoaders(server, buildConfig = {}, userConfig = {}, pluginC
       include: /node_modules/,
     }),
     loader('graphics', {
-      test: /\.(gif|png|svg|webp)(\?.*)?$/,
+      test: /\.(gif|png|svg|webp)$/,
       loader: require.resolve('url-loader'),
       query: {...urlLoaderOptions},
     }),
     loader('jpeg', {
-      test: /\.jpe?g(\?.*)?$/,
+      test: /\.jpe?g$/,
       loader: require.resolve('url-loader'),
       query: {...urlLoaderOptions},
     }),
     loader('fonts', {
-      test: /\.(eot|otf|ttf|woff|woff2)(\?.*)?$/,
+      test: /\.(eot|otf|ttf|woff|woff2)$/,
       loader: require.resolve('url-loader'),
       query: {...urlLoaderOptions},
     }),
     loader('video', {
-      test: /\.(mp4|ogg|webm)(\?.*)?$/,
+      test: /\.(mp4|ogg|webm)$/,
       loader: require.resolve('url-loader'),
       query: {...urlLoaderOptions},
     }),
