@@ -67,6 +67,8 @@ export default function moduleBuild(args, buildConfig = {}, cb) {
     src,
     path.resolve('lib'),
     merge(buildConfig.babel, buildConfig.babelDev || {}, {
+      // Transpile modules to CommonJS for ES5 users
+      modules: 'commonjs',
       // Don't force ES5 users of the ES5 build to eat a .require
       plugins: [require.resolve('babel-plugin-add-module-exports')],
     }),
@@ -81,10 +83,7 @@ export default function moduleBuild(args, buildConfig = {}, cb) {
     runBabel(
       src,
       path.resolve('es'),
-      merge(buildConfig.babel, buildConfig.babelDev || {}, {
-        // Don't transpile modules, for use by ES6 module bundlers
-        modules: false,
-      }),
+      merge(buildConfig.babel, buildConfig.babelDev || {}),
       userConfig.babel,
     )
     spinner.succeed()

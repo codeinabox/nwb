@@ -8,7 +8,7 @@ export default function createBabelConfig(buildConfig = {}, userConfig = {}) {
   let {
     commonJSInterop,
     env,
-    modules = 'commonjs',
+    modules = false,
     plugins: buildPlugins = [],
     presets: buildPresets,
     stage: buildStage = DEFAULT_STAGE,
