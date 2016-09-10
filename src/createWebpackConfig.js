@@ -4,10 +4,9 @@ import autoprefixer from 'autoprefixer'
 import CaseSensitivePathsPlugin from 'case-sensitive-paths-webpack-plugin'
 import CopyPlugin from 'copy-webpack-plugin'
 import ExtractTextPlugin from 'extract-text-webpack-plugin'
-import HtmlPlugin from 'html-webpack-plugin'
+import HtmlPlugin from '@insin/html-webpack-plugin'
 import NpmInstallPlugin from 'npm-install-webpack-plugin'
 import webpack, {optimize} from 'webpack'
-import failPlugin from 'webpack-fail-plugin'
 import Md5HashPlugin from 'webpack-md5-hash'
 import merge from 'webpack-merge'
 
@@ -225,6 +224,19 @@ export function createExtraLoaders(extraLoaders = [], userConfig = {}) {
   return extraLoaders.map(extraLoader => {
     let {id, ...loaderConfig} = extraLoader
     return loader(id, loaderConfig)
+  })
+}
+
+/**
+ * Plugin for failing the build with a non-zero exit code if there are errors.
+ */
+function failPlugin() {
+  this.plugin('done', (stats) => {
+    if (stats.compilation.errors && stats.compilation.errors.length > 0) {
+      process.on('beforeExit', () => {
+        process.exit(1)
+      })
+    }
   })
 }
 
