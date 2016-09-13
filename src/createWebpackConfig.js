@@ -228,19 +228,6 @@ export function createExtraLoaders(extraLoaders = [], userConfig = {}) {
 }
 
 /**
- * Plugin for failing the build with a non-zero exit code if there are errors.
- */
-function failPlugin() {
-  this.plugin('done', (stats) => {
-    if (stats.compilation.errors && stats.compilation.errors.length > 0) {
-      process.on('beforeExit', () => {
-        process.exit(1)
-      })
-    }
-  })
-}
-
-/**
  * Plugin for HtmlPlugin which inlines content for an extracted Webpack
  * manifest into the HTML page in a <script> tag before other emitted asssets
  * are injected by HtmlPlugin itself.
@@ -308,11 +295,6 @@ export function createPlugins(server, buildConfig = {}, userConfig = {}) {
       ...userConfig.define,
     }),
   ]
-
-  // Fail the build if there are compilation errors when running on CI
-  if (process.env.CI || process.env.CONTINUOUS_INTEGRATION) {
-    plugins.push(failPlugin)
-  }
 
   if (server) {
     // HMR is enabled by default but can be explicitly disabled
