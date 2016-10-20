@@ -82,7 +82,7 @@ export function createStyleLoaders(loader, server, userWebpackConfig, {
     loader(name('postcss'), {
       loader: require.resolve('postcss-loader'),
       query: {
-        plugins: createDefaultPostCSSPlugins(userWebpackConfig),
+        plugins: () => createDefaultPostCSSPlugins(userWebpackConfig),
       },
     })
   ]
