@@ -15,10 +15,6 @@ import debug from './debug'
 import {deepToString, endsWith, typeOf} from './utils'
 import StatusPlugin from './WebpackStatusPlugin'
 
-// Top-level property names reserved for webpack config
-// From http://webpack.github.io/docs/configuration.html
-const WEBPACK_RESERVED = 'context entry output module resolve resolveLoader externals target bail profile cache watch watchOptions debug devtool devServer node amd loader recordsPath recordsInputPath recordsOutputPath plugins'.split(' ')
-
 /**
  * Merge webpack loader config ({test, loader, query, include, exclude}) objects.
  */
@@ -37,7 +33,7 @@ export function mergeLoaderConfig(defaultConfig = {}, buildConfig = {}, userConf
  * Create a function which configures a loader identified by a unique id, with
  * the option to override defaults with build-specific and user config.
  */
-export let loaderConfigFactory = (buildConfig, userConfig) =>
+export let loaderConfigFactory = (buildConfig, userConfig = {}) =>
   (id, defaultConfig) => {
     if (id) {
       return {id, ...mergeLoaderConfig(defaultConfig, buildConfig[id], userConfig[id])}
@@ -67,7 +63,7 @@ export let styleLoaderName = (prefix) =>
  * Create a default style-handling pipeline for either a static build (default)
  * or a server build.
  */
-export function createStyleLoaders(loader, server, {
+export function createStyleLoaders(loader, server, userWebpackConfig, {
   preprocessor = null,
   prefix = null,
 } = {}) {
@@ -86,7 +82,7 @@ export function createStyleLoaders(loader, server, {
     loader(name('postcss'), {
       loader: require.resolve('postcss-loader'),
       query: {
-        pack: prefix,
+        plugins: createDefaultPostCSSPlugins(userWebpackConfig),
       },
     })
   ]
@@ -117,8 +113,8 @@ export function createStyleLoaders(loader, server, {
  *   tweaks based on loader id.
  * - extra loaders defined in user config.
  */
-export function createLoaders(server, buildConfig = {}, userConfig = {}, pluginConfig = {}) {
-  let loader = loaderConfigFactory(buildConfig, userConfig)
+export function createLoaders(server, buildConfig = {}, userWebpackConfig = {}, pluginConfig = {}) {
+  let loader = loaderConfigFactory(buildConfig, userWebpackConfig.loaders)
 
   // Default query options for url-loader
   let urlLoaderOptions = {
@@ -142,12 +138,12 @@ export function createLoaders(server, buildConfig = {}, userConfig = {}, pluginC
     }),
     loader('css-pipeline', {
       test: /\.css$/,
-      loaders: createStyleLoaders(loader, server),
+      loaders: createStyleLoaders(loader, server, userWebpackConfig),
       exclude: /node_modules/,
     }),
     loader('vendor-css-pipeline', {
       test: /\.css$/,
-      loaders: createStyleLoaders(loader, server, {
+      loaders: createStyleLoaders(loader, server, userWebpackConfig, {
         prefix: 'vendor',
       }),
       include: /node_modules/,
@@ -183,7 +179,7 @@ export function createLoaders(server, buildConfig = {}, userConfig = {}, pluginC
     }),
     // Extra loaders from build config, still configurable via user config when
     // the loaders specify an id.
-    ...createExtraLoaders(buildConfig.extra, userConfig),
+    ...createExtraLoaders(buildConfig.extra, userWebpackConfig.loaders),
   ]
 
   if (pluginConfig.cssPreprocessors) {
@@ -192,7 +188,7 @@ export function createLoaders(server, buildConfig = {}, userConfig = {}, pluginC
       loaders.push(
         loader(`${id}-pipeline`, {
           test,
-          loaders: createStyleLoaders(loader, server, {
+          loaders: createStyleLoaders(loader, server, userWebpackConfig, {
             prefix: id,
             preprocessor: {id, config},
           }),
@@ -202,7 +198,7 @@ export function createLoaders(server, buildConfig = {}, userConfig = {}, pluginC
       loaders.push(
         loader(`vendor-${id}-pipeline`, {
           test,
-          loaders: createStyleLoaders(loader, server, {
+          loaders: createStyleLoaders(loader, server, userWebpackConfig, {
             prefix: `vendor-${id}`,
             preprocessor: {id, config},
           }),
@@ -416,79 +412,6 @@ export function createPlugins(server, buildConfig = {}, userConfig = {}) {
   return plugins
 }
 
-/**
- * Extract top-level loader configuration provided by the user.
- */
-export function getTopLevelLoaderConfig(userLoaderConfig, cssPreprocessors = {}) {
-  if (!userLoaderConfig || Object.keys(userLoaderConfig).length === 0) {
-    return {}
-  }
-
-  let topLevelLoaderConfig = {}
-  Object.keys(userLoaderConfig).forEach(loaderId => {
-    let loaderConfig = userLoaderConfig[loaderId]
-    if (!('config' in loaderConfig)) return
-
-    // Determine the proeprty to set top level loader config under
-    let configPropertyName
-
-    // Trust the user to specify their own config key for loaders with support
-    if (loaderConfig.query && 'config' in loaderConfig.query) {
-      configPropertyName = loaderConfig.query.config
-    }
-    else {
-      // Otherwise, determine the correct config key
-      let id = loaderId.replace(/^vendor-/, '')
-      if (id in cssPreprocessors) {
-        if (!cssPreprocessors[id].defaultConfig) {
-          throw new Error(`The ${id} CSS preprocessor loader doesn't support a default top-level config object.`)
-        }
-        configPropertyName = cssPreprocessors[id].defaultConfig
-      }
-      else if (id === 'babel') {
-        configPropertyName = 'babel'
-      }
-      else {
-        throw new Error(`The ${id} loader doesn't appear to support a default top-level config object.`)
-      }
-    }
-
-    if (WEBPACK_RESERVED.indexOf(configPropertyName) !== -1) {
-      throw new Error(
-        `User config for the ${loaderId} loader cannot be set in ${configPropertyName} - this is reserved for use by Webpack.`
-      )
-    }
-    else if (configPropertyName in topLevelLoaderConfig) {
-      throw new Error(
-        `User config for the ${loaderId} loader cannot be set in ${configPropertyName} - this has already been used.`
-      )
-    }
-
-    topLevelLoaderConfig[configPropertyName] = loaderConfig.config
-  })
-
-  return topLevelLoaderConfig
-}
-
-/**
- * Create top-level PostCSS plugin config for each style pipeline.
- */
-export function createPostCSSConfig(userWebpackConfig, cssPreprocessors = {}) {
-  // postcss-loader throws an error if a pack name is provided but isn't
-  // configured, so we need to set the default PostCSS plugins for every single
-  // style pipeline.
-  let postcss = {
-    defaults: createDefaultPostCSSPlugins(userWebpackConfig),
-    vendor: createDefaultPostCSSPlugins(userWebpackConfig),
-  }
-  Object.keys(cssPreprocessors).forEach(id => {
-    postcss[id] = createDefaultPostCSSPlugins(userWebpackConfig)
-    postcss[`vendor-${id}`] = createDefaultPostCSSPlugins(userWebpackConfig)
-  })
-  // Any PostCSS plugins provided by the user will completely overwrite defaults
-  return {...postcss, ...userWebpackConfig.postcss}
-}
-
 function createDefaultPostCSSPlugins(userWebpackConfig) {
   return [
     autoprefixer({
@@ -612,7 +535,7 @@ export default function createWebpackConfig(buildConfig, nwbPluginConfig = {}, u
 
   let webpackConfig = {
     module: {
-      loaders: createLoaders(server, buildLoaderConfig, userWebpackConfig.loaders, nwbPluginConfig)
+      loaders: createLoaders(server, buildLoaderConfig, userWebpackConfig, nwbPluginConfig)
     },
     output: {
       ...buildOutputConfig,
@@ -622,12 +545,7 @@ export default function createWebpackConfig(buildConfig, nwbPluginConfig = {}, u
     resolve: merge({
       extensions: ['.js', '.json'],
     }, buildResolveConfig, userResolveConfig),
-    postcss: createPostCSSConfig(userWebpackConfig, nwbPluginConfig.cssPreprocessors),
     ...otherBuildConfig,
-    // Top level loader config can be supplied via user "loaders" config, so we
-    // detect, extract and where possible validate it before merging it into the
-    // final webpack config object.
-    ...getTopLevelLoaderConfig(userWebpackConfig.loaders, nwbPluginConfig.cssPreprocessors),
   }
 
   if (entry) {

@@ -2,9 +2,7 @@ import expect from 'expect'
 
 import createWebpackConfig, {
   COMPAT_CONFIGS,
-  createPostCSSConfig,
   getCompatConfig,
-  getTopLevelLoaderConfig,
   mergeLoaderConfig,
   styleLoaderName,
 } from '../src/createWebpackConfig'
@@ -17,7 +15,7 @@ describe('createWebpackConfig()', () => {
   context('with only entry config', () => {
     let config = createWebpackConfig({entry: ['index.js']})
     it('creates a default webpack build config', () => {
-      expect(Object.keys(config)).toEqual(['module', 'output', 'plugins', 'resolve', 'postcss', 'entry'])
+      expect(Object.keys(config)).toEqual(['module', 'output', 'plugins', 'resolve', 'entry'])
       expect(config.module.loaders.map(loader => loader.loader || loader.loaders).join('\n'))
         .toContain('babel-loader')
         .toContain('extract-text-webpack-plugin')
@@ -291,74 +289,6 @@ describe('mergeLoaderConfig()', () => {
         }
       }
     })
-  })
-})
-
-describe('getTopLevelLoaderConfig()', () => {
-  describe('without any top level config specified', () => {
-    it('returns an empty object', () => {
-      expect(getTopLevelLoaderConfig(null)).toEqual({})
-      expect(getTopLevelLoaderConfig({})).toEqual({})
-    })
-  })
-  it('trusts the user if they specify their own config prop for a loader', () => {
-    expect(getTopLevelLoaderConfig({test: {config: {a: 1}, query: {config: 'testLoader'}}}))
-      .toEqual({testLoader: {a: 1}})
-  })
-  it('throws if a top-level webpack config prop is used', () => {
-    expect(() => getTopLevelLoaderConfig({test: {config: {a: 1}, query: {config: 'entry'}}}))
-      .toThrow(/this is reserved for use by Webpack/)
-  })
-  it('uses "babel" as the default config prop for babel-loader', () => {
-    expect(getTopLevelLoaderConfig({babel: {config: {stage: 0}}}))
-      .toEqual({babel: {stage: 0}})
-  })
-  it('throws if other top-level config is given', () => {
-    expect(() => getTopLevelLoaderConfig({test: {config: {a: 1}}}))
-      .toThrow(/The test loader doesn't appear to support a default top-level config object/)
-  })
-
-  describe('with CSS preprocessors available', () => {
-    let cssPreprocessors = {
-      sass: {
-        test: /\.scss$/,
-        loader: 'path/to/sass-loader.js',
-        defaultConfig: 'sassLoader',
-      },
-      less: {
-        test: /\.less$/,
-        loader: 'path/to/less-loader.js',
-      }
-    }
-
-    it('uses the default config prop for a CSS preprocessor', () => {
-      expect(getTopLevelLoaderConfig({sass: {config: {a: 1}}}, cssPreprocessors))
-        .toEqual({sassLoader: {a: 1}})
-    })
-    it('throws if the same config prop is configured twice', () => {
-      expect(() => getTopLevelLoaderConfig({
-        sass: {config: {a: 1}},
-        'vendor-sass': {config: {b: 1}},
-      }, cssPreprocessors))
-        .toThrow(/this has already been used/)
-    })
-    it('throws if a default config prop is not available', () => {
-      expect(() => getTopLevelLoaderConfig({less: {config: {a: 1}}}, cssPreprocessors))
-        .toThrow(/The less CSS preprocessor loader doesn't support a default top-level config object/)
-    })
-  })
-})
-
-describe('createPostCSSConfig()', () => {
-  it('creates default plugin config', () => {
-    expect(createPostCSSConfig({})).toIncludeKeys(['defaults', 'vendor'])
-  })
-  it('creates default plugin config for CSS preprocessors', () => {
-    expect(createPostCSSConfig({}, {less: {}, sass: {}}))
-      .toIncludeKeys(['defaults', 'vendor', 'less', 'vendor-less', 'sass', 'vendor-sass'])
-  })
-  it('overwrites plugin config with user config', () => {
-    expect(createPostCSSConfig({postcss: {defaults: [1, 2, 3]}}).defaults).toEqual([1, 2, 3])
   })
 })
 
