@@ -36,7 +36,7 @@ export function mergeLoaderConfig(defaultConfig = {}, buildConfig = {}, userConf
 export let loaderConfigFactory = (buildConfig, userConfig = {}) =>
   (id, defaultConfig) => {
     if (id) {
-      return {id, ...mergeLoaderConfig(defaultConfig, buildConfig[id], userConfig[id])}
+      return mergeLoaderConfig(defaultConfig, buildConfig[id], userConfig[id])
     }
     return defaultConfig
   }
@@ -179,7 +179,7 @@ export function createLoaders(server, buildConfig = {}, userWebpackConfig = {}, 
     }),
     // Extra loaders from build config, still configurable via user config when
     // the loaders specify an id.
-    ...createExtraLoaders(buildConfig.extra, userWebpackConfig.loaders),
+    ...createExtraRules(buildConfig.extra, userWebpackConfig.loaders),
   ]
 
   if (pluginConfig.cssPreprocessors) {
@@ -212,14 +212,14 @@ export function createLoaders(server, buildConfig = {}, userWebpackConfig = {}, 
 }
 
 /**
- * Create loaders from loader definitions which may include an id attribute for
+ * Create rules from loader definitions which may include an id attribute for
  * user customisation. It's assumed these are being created from build config.
  */
-export function createExtraLoaders(extraLoaders = [], userConfig = {}) {
+export function createExtraRules(extraRules = [], userConfig = {}) {
   let loader = loaderConfigFactory({}, userConfig)
-  return extraLoaders.map(extraLoader => {
-    let {id, ...loaderConfig} = extraLoader
-    return loader(id, loaderConfig)
+  return extraRules.map(extraRule => {
+    let {id, ...ruleConfig} = extraRules
+    return loader(id, ruleConfig)
   })
 }
 

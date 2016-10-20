@@ -7,8 +7,16 @@ import createWebpackConfig, {
   styleLoaderName,
 } from '../src/createWebpackConfig'
 
-let findLoaderById = (loaders, id) => {
-  return loaders.filter(loader => loader.id === id)[0]
+function findSassPipelineRule(rules) {
+  return rules.filter(rule =>
+    rule.test.test('.scss') && rule.exclude
+  )[0]
+}
+
+function findVendorSassPipelineRule(rules) {
+  return rules.filter(rule =>
+    rule.test.test('.scss') && rule.include
+  )[0]
 }
 
 describe('createWebpackConfig()', () => {
@@ -70,7 +78,7 @@ describe('createWebpackConfig()', () => {
   context('with plugin config for a CSS preprocessor', () => {
     let config = createWebpackConfig({server: true}, cssPreprocessorPluginConfig)
     it('creates a style loading pipeline', () => {
-      let loader = findLoaderById(config.module.loaders, 'sass-pipeline')
+      let loader = findSassPipelineRule(config.module.loaders)
       expect(loader).toExist()
       expect(loader.loaders).toMatch([
         {loader: /style-loader/},
@@ -81,7 +89,7 @@ describe('createWebpackConfig()', () => {
       expect(loader.exclude.test('node_modules')).toBe(true, 'app loader should exclude node_modules')
     })
     it('creates a vendor style loading pipeline', () => {
-      let loader = findLoaderById(config.module.loaders, 'vendor-sass-pipeline')
+      let loader = findVendorSassPipelineRule(config.module.loaders, 'vendor-sass-pipeline')
       expect(loader).toExist()
       expect(loader.loaders).toMatch([
         {loader: /style-loader/},
@@ -107,7 +115,7 @@ describe('createWebpackConfig()', () => {
       }
     })
     it('applies user config to the preprocessor loader', () => {
-      let loader = findLoaderById(config.module.loaders, 'sass-pipeline')
+      let loader = findSassPipelineRule(config.module.loaders, 'sass-pipeline')
       expect(loader).toExist()
       expect(loader.loaders).toMatch([
         {loader: /style-loader/},
@@ -120,7 +128,7 @@ describe('createWebpackConfig()', () => {
       ])
     })
     it('only applies user config to the appropriate loader', () => {
-      let loader = findLoaderById(config.module.loaders, 'vendor-sass-pipeline')
+      let loader = findVendorSassPipelineRule(config.module.loaders, 'vendor-sass-pipeline')
       expect(loader).toExist()
       expect(loader.loaders).toMatch([
         {loader: /style-loader/},
